@@ -2,7 +2,7 @@
 let messageCount = 0;
 let selectedFile = null; // Variable to store the selected file
 
-const API_ENDPOINT = 'https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat'
+const API_ENDPOINT = "https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat"
 
 // Utility function to scroll the chat container to the bottom
 function scrollToBottom() {
@@ -84,7 +84,7 @@ function displayBotResponse(data) {
         } else {
             clearInterval(interval); // Stop once the response is fully revealed
         }
-    }, 30);
+    }, 3);
 }
 
 // Function to display an error message in the chat
