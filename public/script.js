@@ -2,6 +2,8 @@
 let messageCount = 0;
 let selectedFile = null; // Variable to store the selected file
 
+const API_ENDPOINT = ''
+
 // Utility function to scroll the chat container to the bottom
 function scrollToBottom() {
     const chatContainer = document.getElementById("chatContainer");
@@ -33,7 +35,13 @@ function sendMessage() {
     if (!rawText && !selectedFile) return; // Do nothing if input and file are empty
 
     appendMessage("user", rawText || "File Sent"); // Add user message or file notification
-    inputField.value = ""; // Clear the input field
+    inputField.value = ""; // Clear the input field 
+
+    const request = 
+    {
+        "sessionId": "sessionid-12345",
+        "message": rawText
+    }
 
     const formData = new FormData();
     formData.append("msg", rawText);
@@ -41,21 +49,24 @@ function sendMessage() {
         formData.append("file", selectedFile);
     }
 
-    fetchBotResponse(formData); // Fetch response from the server
+    fetchBotResponse(request); // Fetch response from the server
 }
 
 // Function to fetch the bot's response from the server
-function fetchBotResponse(formData) {
-    fetch("/get", {
+async function fetchBotResponse(request) {
+    const response = await fetch("https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat", {
         method: "POST",
-        body: formData,
-    })
-        .then((response) => response.text())
-        .then((data) => displayBotResponse(data))
-        .catch(() => displayError())
-        .finally(() => {
-            selectedFile = null; // Reset the selected file after sending
-        });
+        headers: {
+            "content-type": 'application/json'
+        },
+        body: JSON.stringify(
+            request
+        )
+    });
+
+    const data = await response.json();
+
+    displayBotResponse(data["reply"]);
 }
 
 // Function to display the bot's response with a gradual reveal effect
