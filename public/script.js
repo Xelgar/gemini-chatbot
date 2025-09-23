@@ -65,7 +65,7 @@ async function fetchBotResponse(request) {
     });
 
     const data = await response.json();
-
+    //console.log(data["reply"]);
     displayBotResponse(data["reply"]);
 }
 
@@ -75,12 +75,22 @@ function displayBotResponse(data) {
     appendMessage("model", "", botMessageId); // Add placeholder for bot message
 
     const botMessageDiv = document.getElementById(botMessageId);
-    botMessageDiv.textContent = ""; // Ensure it's empty
+    botMessageDiv.innerHTML = ""; // Ensure it's empty
+
+    //Handle missing/invalid data 
+    if (!data || typeof data !== "string" || data.trim() === "") {
+        botMessageDiv.textContent = "[No response from bot]";
+        console.log(typeof data);
+        return;
+    }
 
     let index = 0;
+    let tempData = "";
     const interval = setInterval(() => {
         if (index < data.length) {
-            botMessageDiv.textContent += data[index++]; // Gradually add characters
+            tempData += data[index++];
+            // Parse progressively to keep Markdown formatting (like tables)
+            botMessageDiv.innerHTML = marked.parse(tempData);
         } else {
             clearInterval(interval); // Stop once the response is fully revealed
         }

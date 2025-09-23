@@ -129,3 +129,41 @@ body, html {
 .footer button:hover {
   background-color: #1D45BC;
 }
+
+.table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  table-layout: fixed; /* Prevent auto-expanding columns */
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  word-wrap: break-word;
+}
+
+th {
+  background-color: #01C2F3;
+}
+
+.button-container {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+button {
+  background-color: #1D45BC;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #163699;
+}
