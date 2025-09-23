@@ -2,7 +2,7 @@
 let messageCount = 0;
 let selectedFile = null; // Variable to store the selected file
 
-const API_ENDPOINT = ''
+const API_ENDPOINT = 'https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat'
 
 // Utility function to scroll the chat container to the bottom
 function scrollToBottom() {
@@ -54,7 +54,7 @@ function sendMessage() {
 
 // Function to fetch the bot's response from the server
 async function fetchBotResponse(request) {
-    const response = await fetch("https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat", {
+    const response = await fetch(API_ENDPOINT, {
         method: "POST",
         headers: {
             "content-type": 'application/json'
