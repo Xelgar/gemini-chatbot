@@ -192,8 +192,16 @@ class WebSocketChatbot {
                 }
             }
             
-            sendMessage() {
-                const message = this.elements.textInput.value.trim();
+            sendMessage(messageButton) {
+                let message = ""
+                if(messageButton){
+                    this.appendMessage('user', message);
+                    message = messageButton
+                }
+                else{
+                    message = this.elements.textInput.value.trim();
+                }
+                
                 if (!message || this.connectionStatus !== 'connected') return;
                 
                 // Add user message to chat
@@ -341,6 +349,7 @@ class WebSocketChatbot {
         // Initialize the chatbot when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
             window.chatbot = new WebSocketChatbot();
+            window.sendMessage = (msg) => window.chatbot.sendMessage(msg);
         });
         
         // Cleanup on page unload
