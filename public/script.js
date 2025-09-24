@@ -1,133 +1,351 @@
-// Counter to assign unique IDs to bot messages
-let messageCount = 0;
-let selectedFile = null; // Variable to store the selected file
-
-const API_ENDPOINT = "https://0hitahi50a.execute-api.ap-southeast-2.amazonaws.com/chat"
-
-// Utility function to scroll the chat container to the bottom
-function scrollToBottom() {
-    const chatContainer = document.getElementById("chatContainer");
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-}
-
-// Function to append a message to the chat container
-function appendMessage(sender, message, id = null) {
-    const messageHtml = `
-      <div class="message ${sender}">
-        <div class="msg-header">${capitalizeFirstLetter(sender)}</div>
-        <div class="msg-body" ${id ? `id="${id}"` : ""}>${message}</div>
-      </div>
-    `;
-    document.getElementById("chatContainer").insertAdjacentHTML('beforeend', messageHtml);
-    scrollToBottom();
-}
-
-// Utility function to capitalize the first letter of a string
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// Function to handle sending a user message
-function sendMessage() {
-    const inputField = document.getElementById("text");
-    const rawText = inputField.value;
-
-    if (!rawText && !selectedFile) return; // Do nothing if input and file are empty
-
-    appendMessage("user", rawText || "File Sent"); // Add user message or file notification
-    inputField.value = ""; // Clear the input field 
-
-    const request = 
-    {
-        "sessionId": "sessionid-12345",
-        "message": rawText
-    }
-
-    const formData = new FormData();
-    formData.append("msg", rawText);
-    if (selectedFile) {
-        formData.append("file", selectedFile);
-    }
-
-    fetchBotResponse(request); // Fetch response from the server
-}
-
-// Function to fetch the bot's response from the server
-async function fetchBotResponse(request) {
-    const response = await fetch(API_ENDPOINT, {
-        method: "POST",
-        headers: {
-            "content-type": 'application/json'
-        },
-        body: JSON.stringify(
-            request
-        )
-    });
-
-    const data = await response.json();
-    //console.log(data["reply"]);
-    displayBotResponse(data["reply"]);
-}
-
-// Function to display the bot's response with a gradual reveal effect
-function displayBotResponse(data) {
-    const botMessageId = `botMessage-${messageCount++}`; // Increment messageCount properly
-    appendMessage("model", "", botMessageId); // Add placeholder for bot message
-
-    const botMessageDiv = document.getElementById(botMessageId);
-    botMessageDiv.innerHTML = ""; // Ensure it's empty
-
-    //Handle missing/invalid data 
-    if (!data || typeof data !== "string" || data.trim() === "") {
-        botMessageDiv.textContent = "[No response from bot]";
-        console.log(typeof data);
-        return;
-    }
-
-    let index = 0;
-    let tempData = "";
-    const interval = setInterval(() => {
-        if (index < data.length) {
-            tempData += data[index++];
-            // Parse progressively to keep Markdown formatting (like tables)
-            botMessageDiv.innerHTML = marked.parse(tempData);
-        } else {
-            clearInterval(interval); // Stop once the response is fully revealed
+class WebSocketChatbot {
+            constructor() {
+                // Configuration
+                this.WS_URL = 'wss://pbree1a3rh.execute-api.ap-southeast-2.amazonaws.com/dev/';
+                this.MAX_RECONNECT_ATTEMPTS = 5;
+                
+                // State
+                this.ws = null;
+                this.connectionStatus = 'disconnected';
+                this.reconnectAttempts = 0;
+                this.reconnectTimeout = null;
+                this.sessionId = this.getSessionId();
+                this.messageCount = 0;
+                this.currentStreamingMessage = null;
+                
+                // DOM elements
+                this.elements = {
+                    chatContainer: document.getElementById('chatContainer'),
+                    textInput: document.getElementById('text'),
+                    sendButton: document.getElementById('send'),
+                    statusIndicator: document.getElementById('statusIndicator'),
+                    statusText: document.getElementById('statusText'),
+                    reconnectBtn: document.getElementById('reconnectBtn'),
+                    connectionMessage: document.getElementById('connectionMessage')
+                };
+                
+                this.init();
+            }
+            
+            init() {
+                this.attachEventListeners();
+                this.connectWebSocket();
+            }
+            
+            getSessionId() {
+                let sessionId = sessionStorage.getItem('chatSessionId');
+                if (!sessionId) {
+                    sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                    sessionStorage.setItem('chatSessionId', sessionId);
+                }
+                return sessionId;
+            }
+            
+            attachEventListeners() {
+                // Send message on button click
+                this.elements.sendButton.addEventListener('click', () => {
+                    this.sendMessage();
+                });
+                
+                // Send message on Enter key
+                this.elements.textInput.addEventListener('keypress', (event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                        event.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+                
+                // Reconnect button
+                this.elements.reconnectBtn.addEventListener('click', () => {
+                    this.reconnectAttempts = 0;
+                    this.connectWebSocket();
+                });
+            }
+            
+            connectWebSocket() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+                
+                this.updateConnectionStatus('connecting');
+                
+                try {
+                    this.ws = new WebSocket(this.WS_URL);
+                    
+                    this.ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        this.updateConnectionStatus('connected');
+                        this.reconnectAttempts = 0;
+                        
+                        if (this.reconnectTimeout) {
+                            clearTimeout(this.reconnectTimeout);
+                            this.reconnectTimeout = null;
+                        }
+                        
+                        // Hide welcome connection message
+                        this.elements.connectionMessage.style.display = 'none';
+                    };
+                    
+                    this.ws.onclose = (event) => {
+                        console.log('WebSocket disconnected:', event.code, event.reason);
+                        this.updateConnectionStatus('disconnected');
+                        
+                        // Clear any streaming message
+                        this.clearStreamingMessage();
+                        
+                        // Attempt to reconnect if not a normal closure
+                        if (event.code !== 1000 && this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+                            this.scheduleReconnect();
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateConnectionStatus('error');
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleWebSocketMessage(data);
+                        } catch (error) {
+                            console.error('Error parsing WebSocket message:', error);
+                        }
+                    };
+                    
+                } catch (error) {
+                    console.error('Error creating WebSocket connection:', error);
+                    this.updateConnectionStatus('error');
+                }
+            }
+            
+            scheduleReconnect() {
+                this.reconnectAttempts++;
+                const timeout = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+                console.log(`Reconnecting in ${timeout}ms... (attempt ${this.reconnectAttempts})`);
+                
+                this.reconnectTimeout = setTimeout(() => {
+                    this.connectWebSocket();
+                }, timeout);
+            }
+            
+            updateConnectionStatus(status) {
+                this.connectionStatus = status;
+                const indicator = this.elements.statusIndicator;
+                const text = this.elements.statusText;
+                const reconnectBtn = this.elements.reconnectBtn;
+                const textInput = this.elements.textInput;
+                const sendButton = this.elements.sendButton;
+                
+                indicator.className = `status-indicator status-${status}`;
+                
+                switch (status) {
+                    case 'connected':
+                        text.textContent = 'Connected';
+                        reconnectBtn.style.display = 'none';
+                        textInput.disabled = false;
+                        textInput.placeholder = 'Type your message...';
+                        sendButton.disabled = false;
+                        break;
+                    case 'connecting':
+                        text.textContent = 'Connecting...';
+                        reconnectBtn.style.display = 'none';
+                        textInput.disabled = true;
+                        textInput.placeholder = 'Connecting...';
+                        sendButton.disabled = true;
+                        break;
+                    case 'disconnected':
+                    case 'error':
+                        text.textContent = status === 'error' ? 'Connection Error' : 'Disconnected';
+                        reconnectBtn.style.display = 'inline-block';
+                        textInput.disabled = true;
+                        textInput.placeholder = 'Disconnected...';
+                        sendButton.disabled = true;
+                        break;
+                }
+            }
+            
+            handleWebSocketMessage(data) {
+                console.log('Received message:', data);
+                
+                switch (data.type) {
+                    case 'system':
+                        console.log('System message:', data.message);
+                        break;
+                        
+                    case 'typing':
+                        this.showTypingIndicator();
+                        break;
+                        
+                    case 'chunk':
+                        this.handleStreamingChunk(data);
+                        break;
+                        
+                    case 'complete':
+                        this.handleCompleteMessage(data);
+                        break;
+                        
+                    case 'error':
+                        this.handleErrorMessage(data);
+                        break;
+                        
+                    default:
+                        console.log('Unknown message type:', data.type);
+                }
+            }
+            
+            sendMessage() {
+                const message = this.elements.textInput.value.trim();
+                if (!message || this.connectionStatus !== 'connected') return;
+                
+                // Add user message to chat
+                this.appendMessage('user', message);
+                
+                // Send to WebSocket
+                const messageData = {
+                    action: 'sendMessage',
+                    message: message,
+                    sessionId: this.sessionId
+                };
+                
+                this.ws.send(JSON.stringify(messageData));
+                
+                // Clear input
+                this.elements.textInput.value = '';
+            }
+            
+            showTypingIndicator() {
+                this.clearStreamingMessage();
+                
+                const typingId = `typing-${this.messageCount++}`;
+                const typingHtml = `
+                    <div class="message model" id="${typingId}">
+                        <div class="avatar"> </div>
+                        <div class="message-content">
+                            <div class="typing-indicator">
+                                <div class="typing-dots">
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                    <div class="typing-dot"></div>
+                                </div>
+                                <span style="margin-left: 0.5rem;"> Thinking...</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                this.elements.chatContainer.insertAdjacentHTML('beforeend', typingHtml);
+                this.currentStreamingMessage = typingId;
+                // this.scrollToBottom();
+            }
+            
+            handleStreamingChunk(data) {
+                if (!this.currentStreamingMessage || !data.fullResponse) return;
+                
+                const messageElement = document.getElementById(this.currentStreamingMessage);
+                if (messageElement) {
+                    const contentDiv = messageElement.querySelector('.message-content');
+                    if (contentDiv) {
+                        messageElement.classList.add('streaming-message');
+                        
+                        try {
+                            contentDiv.innerHTML = marked.parse(data.fullResponse);
+                        } catch (error) {
+                            contentDiv.textContent = data.fullResponse;
+                        }
+                        // this.scrollToBottom();
+                    }
+                }
+            }
+            
+            handleCompleteMessage(data) {
+                if (this.currentStreamingMessage) {
+                    const messageElement = document.getElementById(this.currentStreamingMessage);
+                    if (messageElement) {
+                        // Remove streaming effect
+                        messageElement.classList.remove('streaming-message');
+                        
+                        // Update with final content
+                        const contentDiv = messageElement.querySelector('.message-content');
+                        if (contentDiv) {
+                            try {
+                                contentDiv.innerHTML = marked.parse(data.message);
+                            } catch (error) {
+                                contentDiv.textContent = data.message;
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: create new message if streaming message doesn't exist
+                    this.appendMessage('model', data.message);
+                }
+                
+                this.currentStreamingMessage = null;
+                //this.scrollToBottom();
+            }
+            
+            handleErrorMessage(data) {
+                this.clearStreamingMessage();
+                this.appendMessage('model', data.message || 'An error occurred', null, true);
+            }
+            
+            clearStreamingMessage() {
+                if (this.currentStreamingMessage) {
+                    const element = document.getElementById(this.currentStreamingMessage);
+                    if (element) {
+                        element.remove();
+                    }
+                    this.currentStreamingMessage = null;
+                }
+            }
+            
+            appendMessage(sender, message, id = null, isError = false) {
+                const messageId = id || `message-${this.messageCount++}`;
+                const errorClass = isError ? ' error' : '';
+                const avatar = sender === 'user' ? '👤' : '🤖';
+                
+                const messageHtml = `
+                    <div class="message ${sender}${errorClass}" id="${messageId}">
+                        <div class="avatar">${avatar}</div>
+                        <div class="message-content">${this.processMessage(message)}</div>
+                    </div>
+                `;
+                
+                this.elements.chatContainer.insertAdjacentHTML('beforeend', messageHtml);
+                //this.scrollToBottom();
+                
+                return messageId;
+            }
+            
+            processMessage(message) {
+                try {
+                    return marked.parse(message);
+                } catch (error) {
+                    return message;
+                }
+            }
+            
+            scrollToBottom() {
+                this.elements.chatContainer.scrollTop = this.elements.chatContainer.scrollHeight;
+            }
+            
+            // Cleanup method
+            disconnect() {
+                if (this.reconnectTimeout) {
+                    clearTimeout(this.reconnectTimeout);
+                }
+                if (this.ws) {
+                    this.ws.close(1000, 'User disconnecting');
+                }
+            }
         }
-    }, 3);
-}
-
-// Function to display an error message in the chat
-function displayError() {
-    appendMessage("model error", "Failed to fetch a response from the server.");
-}
-
-// Attach event listeners for the send button and the Enter key
-function attachEventListeners() {
-    const sendButton = document.getElementById("send");
-    const inputField = document.getElementById("text");
-    const attachmentButton = document.getElementById("attachment");
-    const fileInput = document.getElementById("fileInput");
-
-    sendButton.addEventListener("click", sendMessage);
-
-    inputField.addEventListener("keypress", (event) => {
-        if (event.key === "Enter") {
-            sendMessage();
-        }
-    });
-
-    // Trigger file input on attachment button click
-    attachmentButton.addEventListener("click", () => {
-        fileInput.click();
-    });
-
-    // Store selected file
-    fileInput.addEventListener("change", (event) => {
-        selectedFile = event.target.files[0];
-        appendMessage("user", `Selected File: ${selectedFile.name}`);
-    });
-}
-
-// Initialize the chat application when the DOM is fully loaded
-document.addEventListener("DOMContentLoaded", attachEventListeners);
+        
+        // Initialize the chatbot when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.chatbot = new WebSocketChatbot();
+        });
+        
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (window.chatbot) {
+                window.chatbot.disconnect();
+            }
+        });

@@ -12,24 +12,36 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <!-- Header -->
+     <!-- Header -->
     <div class="header">
         <img src="https://i.ibb.co/F57MGN0/ai-1.png" alt="Chatbot Logo">
+        <div class="connection-status">
+            <div id="statusIndicator" class="status-indicator status-disconnected"></div>
+            <span id="statusText">Disconnected</span>
+            <button id="reconnectBtn" class="reconnect-btn" style="display: none;">Reconnect</button>
+        </div>
     </div>
 
     <!-- Chat Container -->
-    <div id="chatContainer" class="chat-container"></div>
+    <div id="chatContainer" class="chat-container">
+        <div class="welcome-message">
+            <div class="welcome-icon">🤖</div>
+            <h3>Welcome to CX Perspectives!</h3>
+            <p>Ask me anything about your contact centre data to get started.</p>
+            <p id="connectionMessage" style="color: #FECF0C; font-size: 0.9rem;">Connecting to chat...</p>
+        </div>
+    </div>
 
     <!-- Footer -->
     <div class="footer">
-      <input type="text" id="text" placeholder="Ask me anything" autocomplete="off" required>
-      <input type="file" id="fileInput" style="display: none;" accept="image/*">
-      <button id="attachment">
-          <i class="fas fa-paperclip"></i>
-      </button>
-      <button id="send">
-        <i class="fas fa-location-arrow"></i>
-      </button>
+        <input type="text" id="text" placeholder="Ask me anything" autocomplete="off" required disabled>
+        <input type="file" id="fileInput" style="display: none;" accept="image/*">
+        <button id="attachment" disabled>
+            <i class="fas fa-paperclip"></i>
+        </button>
+        <button id="send" disabled>
+            <i class="fas fa-location-arrow"></i>
+        </button>
     </div>
 
     <!-- JavaScript -->
