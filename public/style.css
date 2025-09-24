@@ -98,8 +98,8 @@ body, html {
     background-color: #182534; 
     border-radius: 10px;
     padding: 10px;
-    font-family: 'Josefin Sans', light;
-    font-size: 16px;
+    font-family: "Inter", Arial, Helvetica, sans-serif;;
+    font-size: 18px;
     color: #F9FAFB;
 }
 
@@ -110,8 +110,8 @@ body, html {
     background-color: #182534;
     border-radius: 10px;
     padding: 10px;
-    font-family: 'Josefin Sans', light;
-    font-size: 16px;
+    font-family: "Inter", Arial, Helvetica, sans-serif;;
+    font-size: 18px;
     color: #F9FAFB;
 }
 
@@ -123,7 +123,7 @@ body, html {
 .message .msg-header {
     font-weight: bold;
     font-size: 14px;
-    padding: 3px 8px;
+    padding: 3px;
     border-radius: 15px;
     margin-left: 5px;
     margin-right: 5px;
@@ -203,13 +203,13 @@ body, html {
 
 .footer input {
     flex: 1;
-    background-color: #ffffff;
-    color: #000000;
-    border: none;
+    background-color: transparent;
+    color: #ffffff;
+    border: 3px solid #1D45BC;
     padding: 10px 15px;
     border-radius: 5px;
     outline: none;
-    font-size: 16px;
+    font-size: 18px;
     margin-right: 10px;
 }
 
@@ -267,17 +267,19 @@ th {
 }
 
 button {
-    background-color: #1D45BC;
-    color: white;
-    border: none;
+    background-color: transparent; 
+    color: #01C2F3;
+    border: 1px solid #01C2F3;
     padding: 6px 12px;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
+    font-family: "Josefin Sans";
 }
 
 button:hover {
-    background-color: #163699;
+    background-color: #01C2F3;
+    color: #000000;
 }
 
 .welcome-message {

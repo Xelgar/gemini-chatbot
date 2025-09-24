@@ -222,7 +222,7 @@ class WebSocketChatbot {
             
             showTypingIndicator() {
                 this.clearStreamingMessage();
-                
+            
                 const typingId = `typing-${this.messageCount++}`;
                 const typingHtml = `
                     <div class="message model" id="${typingId}">
@@ -234,15 +234,26 @@ class WebSocketChatbot {
                                     <div class="typing-dot"></div>
                                     <div class="typing-dot"></div>
                                 </div>
-                                <span style="margin-left: 0.5rem;"> Thinking...</span>
+                                <span id="${typingId}-status" style="margin-left: 0.5rem;">Thinking...</span>
                             </div>
                         </div>
                     </div>
                 `;
-                
+            
                 this.elements.chatContainer.insertAdjacentHTML('beforeend', typingHtml);
                 this.currentStreamingMessage = typingId;
-                // this.scrollToBottom();
+            
+                // Rotate words every 2 seconds
+                const words = ["Thinking", "Calculating", "Analyzing Input", "Processing Request", "Validating Data", "Optimizing Results"];
+                let index = 0;
+                const statusEl = document.getElementById(`${typingId}-status`);
+            
+                if (statusEl) {
+                    this.wordInterval = setInterval(() => {
+                        index = (index + 1) % words.length;
+                        statusEl.textContent = `${words[index]}...`;
+                    }, 5000);
+                }
             }
             
             handleStreamingChunk(data) {
@@ -296,6 +307,10 @@ class WebSocketChatbot {
             }
             
             clearStreamingMessage() {
+                if (this.wordInterval) {
+                    clearInterval(this.wordInterval);
+                    this.wordInterval = null;
+                }
                 if (this.currentStreamingMessage) {
                     const element = document.getElementById(this.currentStreamingMessage);
                     if (element) {
