@@ -42,9 +42,18 @@ class WebSocketChatbot {
             }
             
             attachEventListeners() {
+                this.elements.textInput.addEventListener('input', () => {
+                    this.updateActionButton();
+                });
+
                 // Send message on button click
                 this.elements.sendButton.addEventListener('click', () => {
-                    this.sendMessage();
+                    if (this.elements.textInput.value.trim().length > 0) {
+                        this.sendMessage();
+                        this.updateActionButton();
+                    } else {
+                        this.startMic();
+                    }
                 });
                 
                 // Send message on Enter key
@@ -52,6 +61,7 @@ class WebSocketChatbot {
                     if (event.key === 'Enter' && !event.shiftKey) {
                         event.preventDefault();
                         this.sendMessage();
+                        this.updateActionButton();
                     }
                 });
                 
@@ -60,6 +70,108 @@ class WebSocketChatbot {
                     this.reconnectAttempts = 0;
                     this.connectWebSocket();
                 });
+            }
+            
+            //change symbol from microphone to send icon
+            updateActionButton() {
+                if (!this.elements || !this.elements.sendButton || !this.elements.textInput) return;
+                if (this.elements.textInput.value.trim().length > 0) {
+                    this.elements.sendButton.innerHTML = '<i class="fas fa-location-arrow"></i>';
+                } else {
+                    this.elements.sendButton.innerHTML = '<i class="fas fa-microphone"></i>';
+                }
+            }
+            
+            startMic() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert("Speech recognition is not supported in this browser. Try Chrome or Edge.");
+                    return;
+                }
+            
+                // Toggle: if recognition is already running, stop it
+                if (this.recognition) {
+                    this.recognition.stop();
+                    return;
+                }
+            
+                // Create recognition instance
+                this.recognition = new SpeechRecognition();
+                this.recognition.lang = "en-US";
+                this.recognition.interimResults = false;
+                this.recognition.continuous = true; // <-- keep listening until manually stopped
+            
+                const btn = this.elements.sendButton;
+                btn.classList.add("listening");
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
+            
+                let silenceTimer = null;
+                let heardWord = false;
+            
+                // helper: start/reset 5s silence timer
+                const startSilenceTimer = () => {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = setTimeout(() => {
+                        if (!heardWord) {
+                            console.log("No speech detected, stopping mic after 5s...");
+                            this.recognition.stop();
+                        }
+                    }, 5000);
+                };
+            
+                // Start the initial silence timer right away
+                startSilenceTimer();
+            
+                this.recognition.onresult = (evt) => {
+                    try {
+                        const transcript = Array.from(evt.results)
+                            .map(r => r[0].transcript)
+                            .join(" ")
+                            .trim();
+            
+                        if (transcript.length > 0) {
+                            heardWord = true; // cancel silence cutoff for future
+                            clearTimeout(silenceTimer);
+            
+                            const existing = this.elements.textInput.value.trim();
+                            this.elements.textInput.value = existing
+                                ? (existing + " " + transcript)
+                                : transcript;
+            
+                            this.elements.textInput.focus();
+                            this.updateActionButton();
+                        }
+                    } catch (err) {
+                        console.error("Speech result handling error:", err);
+                    }
+                };
+            
+                this.recognition.onerror = (evt) => {
+                    console.error("Speech recognition error:", evt.error);
+                    this._resetMicUI();
+                };
+            
+                this.recognition.onend = () => {
+                    this._resetMicUI();
+                };
+            
+                try {
+                    this.recognition.start();
+                    console.log("Speech recognition started...");
+                } catch (err) {
+                    console.error("Could not start speech recognition:", err);
+                    this._resetMicUI();
+                }
+            }
+            
+            // Small helper to clean up UI + state
+            _resetMicUI() {
+                const btn = this.elements.sendButton;
+                btn.classList.remove("listening");
+                this.updateActionButton(); // reverts icon to mic/send
+                clearTimeout(this.silenceTimer);
+                this.recognition = null;
+                btn.blur();
             }
             
             connectWebSocket() {

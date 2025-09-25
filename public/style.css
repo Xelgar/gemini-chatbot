@@ -1,6 +1,6 @@
 /*
 HEX codes
-Obsidian Night: #182534 - #09172e
+Obsidian Night: #182534 - #09172e - #00020f
 Imperial Blue: #1D45BC
 Neon Azure: #01C2F3
 Solar Gold: #FECF0C
@@ -9,8 +9,7 @@ Cloud White: #F9FAFB
 
 body, html {
     height: 100%;
-    margin: 0;
-    background-color: #09172e;
+    background-color: #00020f;
     color: #ffffff;
     font-family: 'Josefin Sans';
     display: flex;
@@ -31,9 +30,16 @@ body, html {
     display: none;
 }
 
+@font-face {
+    font-family: "Furious Style";
+    src: url("fonts/Furious Styles - Demo.ttf");
+}
+
 .header::before {
     content: "CX Perspectives";
     color: #FECF0C;
+    font-family: "Furious Style";
+    font-size: 75px;
 }
 
 /* Connection status overlay */
@@ -89,6 +95,8 @@ body, html {
     max-width: 70%;
     word-wrap: break-word;
     overflow-wrap: break-word;
+    margin-left: 20%;
+    margin-right: 20%;
 }
 
 .message.user {
@@ -107,7 +115,7 @@ body, html {
     align-self: flex-start;
     text-align: left;
     flex-direction: row;
-    background-color: #182534;
+    background-color: transparent;
     border-radius: 10px;
     padding: 10px;
     font-family: "Inter", Arial, Helvetica, sans-serif;;
@@ -201,45 +209,54 @@ body, html {
     gap: 5px;
 }
 
-.footer input {
-    flex: 1;
-    background-color: transparent;
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;   
+}
+
+.input-wrapper input {
+    width: 100%;
+    background-color: #06101f;
     color: #ffffff;
-    border: 3px solid #1D45BC;
-    padding: 10px 15px;
-    border-radius: 5px;
+    border: 1px solid #1D45BC;
+    padding: 10px 50px 10px 15px; /* extra right padding for button */
+    border-radius: 20px;
     outline: none;
     font-size: 18px;
-    margin-right: 10px;
 }
 
-.footer input:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+.input-wrapper input::placeholder {
+    color: #1D45BC;  
 }
 
-.footer button {
+.input-wrapper button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-52%);
     background-color: #1D45BC;
-    color: #ffffff;
+    color: #fff;
     border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
 }
 
-.footer button:disabled {
-    background-color: #666666;
-    cursor: not-allowed;
+.input-wrapper button:hover {
+    background-color: #01C2F3;
 }
 
-.footer button#attachment {
-    background-color: #1D45BC;
-}
-
-.footer button:hover:not(:disabled) {
-    background-color: #163699;
+.input-wrapper button.listening {
+    background-color: #01C2F3;
+    color: #000;
 }
 
 .table {
@@ -262,22 +279,22 @@ th {
 .button-container {
     margin-top: 10px;
     display: flex;
-    gap: 8px;
     flex-wrap: wrap;
 }
 
-button {
+ImageResponseCard button {
     background-color: transparent; 
     color: #01C2F3;
     border: 1px solid #01C2F3;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 50px;
     cursor: pointer;
     font-size: 16px;
     font-family: "Josefin Sans";
+    margin-right: 10px;
 }
 
-button:hover {
+ImageResponseCard button:hover {
     background-color: #01C2F3;
     color: #000000;
 }

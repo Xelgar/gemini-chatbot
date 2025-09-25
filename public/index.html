@@ -12,9 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
-    <!-- JavaScript -->
-    <script src="script.js"></script>
-    
      <!-- Header -->
     <div class="header">
         <img src="https://i.ibb.co/F57MGN0/ai-1.png" alt="Chatbot Logo">
@@ -37,15 +34,16 @@
 
     <!-- Footer -->
     <div class="footer">
-        <input type="text" id="text" placeholder="Ask me anything" autocomplete="off" required disabled>
+        <div class="input-wrapper">
+            <input type="text" id="text" placeholder="Ask me anything" autocomplete="off" required>
+            <button id="send" disabled>
+                <i class="fas fa-microphone"></i>
+            </button>
+        </div>
         <input type="file" id="fileInput" style="display: none;" accept="image/*">
-        <button id="attachment" disabled>
-            <i class="fas fa-paperclip"></i>
-        </button>
-        <button id="send" disabled>
-            <i class="fas fa-location-arrow"></i>
-        </button>
     </div>
 
+    <!-- JavaScript -->
+    <script src="script.js"></script>
 </body>
 </html>
