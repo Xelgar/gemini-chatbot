@@ -15,10 +15,10 @@ const app = express();
 const uploads = multer({ dest: "uploads/" });
 
 // Check if the GEMINI_API_KEY is available in the environment variables
-if (!process.env.GEMINI_API_KEY) {
-  console.error("Error: env file is missing the API KEY");
-  process.exit(1); // Exit the process if the API key is not set
-}
+// if (!process.env.GEMINI_API_KEY) {
+//   console.error("Error: env file is missing the API KEY");
+//   process.exit(1); // Exit the process if the API key is not set
+// }
 
 // Initialize Google Generative AI with the API key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

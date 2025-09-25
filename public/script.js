@@ -195,7 +195,6 @@ class WebSocketChatbot {
             sendMessage(messageButton) {
                 let message = ""
                 if(messageButton){
-                    this.appendMessage('user', message);
                     message = messageButton
                 }
                 else{
@@ -250,7 +249,13 @@ class WebSocketChatbot {
             
                 if (statusEl) {
                     this.wordInterval = setInterval(() => {
-                        index = (index + 1) % words.length;
+                        if(words[index] === "Optimizing Results"){
+                            index = 5;
+                        }
+                        else{
+                            index = (index + 1) % words.length;
+                        }
+                        
                         statusEl.textContent = `${words[index]}...`;
                     }, 5000);
                 }
