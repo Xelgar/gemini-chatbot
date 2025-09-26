@@ -39,7 +39,7 @@ body, html {
     content: "CX Perspectives";
     color: #FECF0C;
     font-family: "Furious Style";
-    font-size: 75px;
+    font-size: 150%;
 }
 
 /* Connection status overlay */

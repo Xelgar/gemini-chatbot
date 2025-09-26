@@ -81,99 +81,7 @@ class WebSocketChatbot {
                     this.elements.sendButton.innerHTML = '<i class="fas fa-microphone"></i>';
                 }
             }
-            
-            startMic() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    alert("Speech recognition is not supported in this browser. Try Chrome or Edge.");
-                    return;
-                }
-            
-                // Toggle: if recognition is already running, stop it
-                if (this.recognition) {
-                    this.recognition.stop();
-                    return;
-                }
-            
-                // Create recognition instance
-                this.recognition = new SpeechRecognition();
-                this.recognition.lang = "en-US";
-                this.recognition.interimResults = false;
-                this.recognition.continuous = true; // <-- keep listening until manually stopped
-            
-                const btn = this.elements.sendButton;
-                btn.classList.add("listening");
-                btn.innerHTML = '<i class="fas fa-stop"></i>';
-            
-                let silenceTimer = null;
-                let heardWord = false;
-            
-                // helper: start/reset 5s silence timer
-                const startSilenceTimer = () => {
-                    clearTimeout(silenceTimer);
-                    silenceTimer = setTimeout(() => {
-                        if (!heardWord) {
-                            console.log("No speech detected, stopping mic after 5s...");
-                            this.recognition.stop();
-                        }
-                    }, 5000);
-                };
-            
-                // Start the initial silence timer right away
-                startSilenceTimer();
-            
-                this.recognition.onresult = (evt) => {
-                    try {
-                        const transcript = Array.from(evt.results)
-                            .map(r => r[0].transcript)
-                            .join(" ")
-                            .trim();
-            
-                        if (transcript.length > 0) {
-                            heardWord = true; // cancel silence cutoff for future
-                            clearTimeout(silenceTimer);
-            
-                            const existing = this.elements.textInput.value.trim();
-                            this.elements.textInput.value = existing
-                                ? (existing + " " + transcript)
-                                : transcript;
-            
-                            this.elements.textInput.focus();
-                            this.updateActionButton();
-                        }
-                    } catch (err) {
-                        console.error("Speech result handling error:", err);
-                    }
-                };
-            
-                this.recognition.onerror = (evt) => {
-                    console.error("Speech recognition error:", evt.error);
-                    this._resetMicUI();
-                };
-            
-                this.recognition.onend = () => {
-                    this._resetMicUI();
-                };
-            
-                try {
-                    this.recognition.start();
-                    console.log("Speech recognition started...");
-                } catch (err) {
-                    console.error("Could not start speech recognition:", err);
-                    this._resetMicUI();
-                }
-            }
-            
-            // Small helper to clean up UI + state
-            _resetMicUI() {
-                const btn = this.elements.sendButton;
-                btn.classList.remove("listening");
-                this.updateActionButton(); // reverts icon to mic/send
-                clearTimeout(this.silenceTimer);
-                this.recognition = null;
-                btn.blur();
-            }
-            
+
             connectWebSocket() {
                 if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
                 
@@ -354,6 +262,7 @@ class WebSocketChatbot {
                 this.elements.chatContainer.insertAdjacentHTML('beforeend', typingHtml);
                 this.currentStreamingMessage = typingId;
             
+                this.scrollToBottom();
                 // Rotate words every 2 seconds
                 const words = ["Thinking", "Calculating", "Analyzing Input", "Processing Request", "Validating Data", "Optimizing Results"];
                 let index = 0;
@@ -415,7 +324,7 @@ class WebSocketChatbot {
                 }
                 
                 this.currentStreamingMessage = null;
-                //this.scrollToBottom();
+                this.scrollToBottom();
             }
             
             handleErrorMessage(data) {
@@ -450,11 +359,10 @@ class WebSocketChatbot {
                 `;
                 
                 this.elements.chatContainer.insertAdjacentHTML('beforeend', messageHtml);
-                //this.scrollToBottom();
-                
+                this.scrollToBottom(true);
                 return messageId;
             }
-            
+
             processMessage(message) {
                 try {
                     return marked.parse(message);
@@ -462,11 +370,7 @@ class WebSocketChatbot {
                     return message;
                 }
             }
-            
-            scrollToBottom() {
-                this.elements.chatContainer.scrollTop = this.elements.chatContainer.scrollHeight;
-            }
-            
+
             // Cleanup method
             disconnect() {
                 if (this.reconnectTimeout) {
@@ -476,17 +380,146 @@ class WebSocketChatbot {
                     this.ws.close(1000, 'User disconnecting');
                 }
             }
-        }
-        
-        // Initialize the chatbot when DOM is loaded
-        document.addEventListener('DOMContentLoaded', () => {
-            window.chatbot = new WebSocketChatbot();
-            window.sendMessage = (msg) => window.chatbot.sendMessage(msg);
-        });
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (window.chatbot) {
-                window.chatbot.disconnect();
+
+            scrollToBottom(smooth = true) {
+                const container = this.elements.chatContainer;
+                // Find the most recent user message
+                const userMessages = container.querySelectorAll('.message.user');
+                const lastUserMessage = userMessages[userMessages.length - 1];
+                
+                if (!lastUserMessage) {
+                    if (smooth) {
+                        container.scrollTo({
+                            top: container.scrollHeight,
+                            behavior: 'smooth'
+                        });
+                    } else {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                    return;
+                }
+                
+                // Calculate responsive padding based on container height
+                const containerHeight = container.clientHeight;
+                const paddingPercentage = 0.25;
+                const padding = containerHeight * paddingPercentage;
+                const targetScrollTop = Math.max(0, lastUserMessage.offsetTop - padding);
+                
+                if (smooth) {
+                    container.scrollTo({
+                        top: targetScrollTop,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    container.scrollTop = targetScrollTop;
+                }
             }
-        });
+
+            //Mic function
+            startMic() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert("Speech recognition is not supported in this browser. Try Chrome or Edge.");
+                    return;
+                }
+            
+                // Toggle: if recognition is already running, stop it
+                if (this.recognition) {
+                    this.recognition.stop();
+                    return;
+                }
+            
+                // Create recognition instance
+                this.recognition = new SpeechRecognition();
+                this.recognition.lang = "en-US";
+                this.recognition.interimResults = false;
+                this.recognition.continuous = true; // <-- keep listening until manually stopped
+            
+                const btn = this.elements.sendButton;
+                btn.classList.add("listening");
+                btn.innerHTML = '<i class="fas fa-stop"></i>';
+            
+                let silenceTimer = null;
+                let heardWord = false;
+            
+                // helper: start/reset 5s silence timer
+                const startSilenceTimer = () => {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = setTimeout(() => {
+                        if (!heardWord) {
+                            console.log("No speech detected, stopping mic after 5s...");
+                            this.recognition.stop();
+                        }
+                    }, 5000);
+                };
+            
+                // Start the initial silence timer right away
+                startSilenceTimer();
+            
+                this.recognition.onresult = (evt) => {
+                    try {
+                        const transcript = Array.from(evt.results)
+                            .map(r => r[0].transcript)
+                            .join(" ")
+                            .trim();
+            
+                        if (transcript.length > 0) {
+                            heardWord = true; // cancel silence cutoff for future
+                            clearTimeout(silenceTimer);
+            
+                            const existing = this.elements.textInput.value.trim();
+                            this.elements.textInput.value = existing
+                                ? (existing + " " + transcript)
+                                : transcript;
+            
+                            this.elements.textInput.focus();
+                            this.updateActionButton();
+                        }
+                    } catch (err) {
+                        console.error("Speech result handling error:", err);
+                    }
+                };
+            
+                this.recognition.onerror = (evt) => {
+                    console.error("Speech recognition error:", evt.error);
+                    this._resetMicUI();
+                };
+            
+                this.recognition.onend = () => {
+                    this._resetMicUI();
+                };
+            
+                try {
+                    this.recognition.start();
+                    console.log("Speech recognition started...");
+                } catch (err) {
+                    console.error("Could not start speech recognition:", err);
+                    this._resetMicUI();
+                }
+            }
+            
+            // Small helper to clean up UI + state
+            _resetMicUI() {
+                const btn = this.elements.sendButton;
+                btn.classList.remove("listening");
+                this.updateActionButton(); // reverts icon to mic/send
+                clearTimeout(this.silenceTimer);
+                this.recognition = null;
+                btn.blur();
+            }
+}
+        
+// Initialize the chatbot when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.chatbot = new WebSocketChatbot();
+    window.sendMessage = (msg) => window.chatbot.sendMessage(msg);
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (window.chatbot) {
+        window.chatbot.disconnect();
+    }
+});
+
+        
